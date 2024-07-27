@@ -1,0 +1,29 @@
+{
+  "name": "babel-test",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "transform": "cross-env DEBUG=babel && babel src --out-dir lib --filename test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@babel/cli": "^7.24.7",
+    "@babel/core": "^7.24.7",
+    "@babel/generator": "^7.24.10",
+    "@babel/plugin-transform-arrow-functions": "^7.24.7",
+    "@babel/preset-env": "^7.24.7",
+    "@babel/register": "^7.24.6",
+    "@babel/traverse": "^7.24.8",
+    "@babel/types": "^7.24.9",
+    "babylon": "^6.18.0",
+    "cross-env": "^7.0.3"
+  },
+  "dependencies": {
+    "core-js": "^3.37.1"
+  },
+  "packageManager": "yarn@4.3.1+sha512.af78262d7d125afbfeed740602ace8c5e4405cd7f4735c08feb327286b2fdb2390fbca01589bfd1f50b1240548b74806767f5a063c94b67e431aabd0d86f7774"
+}

@@ -1,0 +1,13 @@
+{
+  "plugins": ["../../plugins/revert.js"],
+  "overrides": [
+    // {
+    //   "test": "a.js",
+    //   "plugins": []
+    // },
+    {
+      "test": "./sub1.js",
+      "plugins": [["@babel/plugin-transform-arrow-functions"]]
+    }
+  ]
+}

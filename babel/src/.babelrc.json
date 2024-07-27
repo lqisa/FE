@@ -1,0 +1,29 @@
+{
+  "plugins": []
+  // "overrides": [
+  //   {
+  //     "test": "a.js",
+  //     "plugins": []
+  //   },
+  //   {
+  //     "test": "./index.js",
+  //     "plugins": [
+  //       [
+  //         "../plugins/revert.js",
+  //         {
+  //           "one": true
+  //         },
+  //         "one"
+  //       ],
+  //       ["../plugins/binaryExpression.js"]
+  //       // [
+  //       //   "../plugins/revert.js",
+  //       //   {
+  //       //     "two": true
+  //       //   },
+  //       //   "two"
+  //       // ]
+  //     ]
+  //   }
+  // ]
+}
