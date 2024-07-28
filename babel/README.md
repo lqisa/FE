@@ -154,3 +154,9 @@ require("@babel/register")({
 # 参考文档
 
 [babel-handbook](https://github.com/jamiebuilds/babel-handbook/tree/master/translations/zh-Hans)
+
+[babel-type-definitions](https://github.com/babel/babel/tree/master/packages/babel-types/src/definitions)
+
+[ast-spec](https://github.com/babel/babel/blob/master/packages/babel-parser/ast/spec.md)
+
+[Best Practices For Plugin](https://github.com/jamiebuilds/babel-handbook/blob/master/translations/en/plugin-handbook.md#best-practices)
