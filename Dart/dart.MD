@@ -1059,3 +1059,639 @@ for (var MapEntry(:key, value: count) in hist.entries) {
 }
 ```
 
+## Use cases for patterns
+
+- *When and why* you might want to use patterns.
+  您*何时以及为何*需要使用模式。
+- What kinds of problems they solve.
+  他们解决什么样的问题。
+- Which idioms they best suit.
+  它们最适合哪些成语。
+
+### Destructuring multiple returns
+
+```dart
+(String name, int age) userInfo(Map<String, dynamic> json) {
+  return (json['name'] as String, json['age'] as int);
+}
+
+final json = <String, dynamic>{
+  'name': 'Dash',
+  'age': 10,
+  'color': 'blue',
+};
+
+// Destructures using a record pattern with positional fields:
+var (name, age) = userInfo(json);
+
+/* Equivalent to:
+  var info = userInfo(json);
+  var name = info.$1;
+  var age  = info.$2;
+*/
+
+
+
+// To destructure a record with named fields using a pattern:
+final (:name, :age) =
+    getData(); // For example, return (name: 'doug', age: 25);
+    
+    
+```
+
+### Destructuring class instances
+
+[Object patterns](https://dart.cn/language/pattern-types#object) match against named object types, allowing you to destructure their data using **the getters the object's class already exposes**.
+[对象模式](https://dart.cn/language/pattern-types#object)与命名对象类型相匹配，允许您使用对象**类已经公开的 getter** 来解构其数据。
+
+```dart
+final Foo myFoo = Foo(one: 'one', two: 2);
+var Foo(:one, :two) = myFoo;
+print('one $one, two $two');
+```
+
+### Validating incoming JSON
+
+```dart
+// 但数据通常来自外部来源，例如通过网络。您需要先对其进行验证以确认其结构。
+// 如果没有模式，验证就会很冗长：
+if (json is Map<String, Object?> &&
+    json.length == 1 &&
+    json.containsKey('user')) {
+  var user = json['user'];
+  if (user is List<Object> &&
+      user.length == 2 &&
+      user[0] is String &&
+      user[1] is int) {
+    var name = user[0] as String;
+    var age = user[1] as int;
+    print('User $name is $age years old.');
+  }
+}
+
+// equivalent to
+if (json case {'user': [String name, int age]}) {
+  print('User $name is $age years old.');
+}
+```
+
+# Pattern types
+
+## Logical-or
+
+`subpattern1 || subpattern2`
+
+```dart
+var isPrimary = switch (color) {
+  Color.red || Color.yellow || Color.blue => true,
+  _ => false
+};
+```
+
+## Logical-and
+
+`subpattern1 && subpattern2`
+
+```dart
+switch ((1, 2)) {
+  // Error, both subpatterns attempt to bind 'b'.
+  case (var a, var b) && (var b, var c): // ...
+}
+```
+
+## Relational
+
+```
+== expression
+< expression
+```
+
+```dart
+String asciiCharType(int char) {
+  const space = 32;
+  const zero = 48;
+  const nine = 57;
+
+  return switch (char) {
+    < space => 'control',
+    == space => 'space',
+    > space && < zero => 'punctuation',
+    >= zero && <= nine => 'digit',
+    // deafult 
+    _ => ''
+  };
+}
+```
+
+## Cast 
+
+`foo as String`
+
+A cast pattern lets you **insert a [type cast](https://dart.cn/language/operators#type-test-operators) in the middle of destructuring**, before passing the value to another subpattern:
+
+```dart
+(num, Object) record = (1, 's');
+var (i as int, s as String) = record;
+```
+
+## Null-check
+
+`subpattern?`
+
+To **treat `null` values as match failures without throwing**, use the null-check pattern.
+
+```dart
+String? maybeString = 'nullable with base type String';
+switch (maybeString) {
+  case var s?:
+  // 's' has type non-nullable String here.
+}
+```
+
+To match when the value *is* null, use the [constant pattern](https://dart.cn/language/pattern-types/#constant) `null`
+
+## Null-assert
+
+`subpattern!`
+
+Null-assert patterns match first if the object is not null, then on the value. They **permit non-null values to flow through, but [throw](https://dart.cn/language/error-handling#throw) if the matched value is null**.
+
+```dart
+List<String?> row = ['user', null];
+switch (row) {
+  // this will THROW ERROR
+  case ['user', var name!]: // ...
+  // 'name' is a non-nullable string here.
+}
+```
+
+要从变量声明模式中消除`null`值，请使用空断言模式：
+
+```dart
+(int?, int?) position = (2, 3);
+
+var (x!, y!) = position;
+```
+
+## Constant
+
+`123`, `null`, `'string'`, `math.pi`, `SomeClass.constant`, `const Thing(1, 2)`,` const (1 + 2)`
+
+```dart
+switch (number) {
+  // Matches if 1 == number.
+  case 1: // ...
+}
+```
+
+- Number literals (`123`, `45.56`)
+  数字文字 ( `123` , `45.56` )
+- Boolean literals (`true`)
+  布尔文字 ( `true` )
+- String literals (`'string'`)
+  字符串文字 ( `'string'` )
+- Named constants (`someConstant`, `math.pi`, `double.infinity`)
+  命名常量（ `someConstant` 、 `math.pi` 、 `double.infinity` ）
+- Constant constructors (`const Point(0, 0)`)
+  常量构造函数 ( `const Point(0, 0)` )
+- Constant collection literals (`const []`, `const {1, 2}`)
+  常量集合文字 ( `const []` , `const {1, 2}` )
+
+更复杂的常量表达式必须加括号并以`const` 为前缀: ( `const (1 + 2)` )
+
+```dart
+// List or map pattern:
+case [a, b]: // ...
+
+// List or map literal:
+case const [a, b]: // ...
+```
+
+## Parenthesized (带括号的)
+
+- control [pattern precedence](https://dart.cn/language/pattern-types/#pattern-precedence) 
+
+- insert a lower-precedence pattern where a higher precedence one is expected
+
+```dart
+var x = true;
+var y = true;
+var z = false;
+
+// ...
+x || y => 'matches true',
+
+// `x || y && z` is the same thing as `x || (y && z)`.
+x || y && z => 'matches true',
+x || (y && z) => 'matches true',
+
+(x || y) && z => 'matches nothing',
+// ...
+```
+
+## List 
+
+`[subpattern1, subpattern2]`
+
+### Rest element
+
+```dart
+var [a, b, ..., c, d] = [1, 2, 3, 4, 5, 6, 7];
+// Prints "1 2 6 7".
+print('$a $b $c $d');
+
+var [a, b, ...rest, c, d] = [1, 2, 3, 4, 5, 6, 7];
+// Prints "1 2 [3, 4, 5] 6 7".
+print('$a $b $rest $c $d');
+```
+
+## Map 
+
+`{"key": subpattern1, someConst: subpattern2}`
+
+Map patterns **don't require the pattern to match the entire map**. A map pattern ignores any keys that the map contains that aren't matched by the pattern.
+
+```dart
+Map<String, dynamic> map = {
+  'name': 'jack',
+  'age': 25,
+};
+
+switch (map) {
+    // FAIL
+  case {
+    'name': String,
+    'age': num,
+  }:
+    print('name is a string');  
+    // OK
+  case {
+    'name': String _,
+    'age': num _,
+  }:
+    print('name is a string');
+    // OK
+  case {
+    'name': String _,
+  }:
+    print('name is a string');
+
+}
+
+// OK
+if (map
+    case {
+      'name': String _,
+      'age': num _,
+    }) {
+  print('The name is a string');
+}
+
+```
+
+
+
+## Record 
+
+`(subpattern1, subpattern2)`
+
+Record patterns require that the pattern **match the entire record**. To destructure a record with *named* fields using a pattern, include the field names in the pattern
+
+```dart
+var (myString: foo, myNumber: bar) = (myString: 'string', myNumber: 1);
+```
+
+可以省略 getter 名称，并从字段子模式中的变量模式或标识符模式推断出来。这些模式对都是等效的
+
+```dart
+// Record pattern with variable subpatterns:
+var (untyped: untyped, typed: int typed) = record;
+var (:untyped, :int typed) = record;
+
+switch (record) {
+  case (untyped: var untyped, typed: int typed): // ...
+  case (:var untyped, :int typed): // ...
+}
+
+// Record pattern with null-check and null-assert subpatterns:
+switch (record) {
+  case (checked: var checked?, asserted: var asserted!): // ...
+  case (:var checked?, :var asserted!): // ...
+}
+
+// Record pattern with cast subpattern:
+var (untyped: untyped as int, typed: typed as String) = record;
+var (:untyped as int, :typed as String) = record;
+```
+
+## Object 
+
+`SomeClass(x: subpattern1, y: subpattern2)`
+
+Object patterns **don't require the pattern to match the entire object**. If an object has extra fields that the pattern doesn't destructure, it can still match.
+
+```dart
+switch (shape) {
+  // Matches if shape is of type Rect, and then against the properties of Rect.
+  case Rect(width: var w, height: var h): // ...
+}
+
+
+// Binds new variables x and y to the values of Point's x and y properties.
+var Point(:x, :y) = Point(1, 2);
+
+
+class Axis {
+  int x;
+  int y;
+  int z;
+  Axis(this.x, this.y, this.z);
+}
+
+void main() {
+  var Point(:x, :y) = Axis(1, 2, 3);
+  print('${x} ${y}'); // 1 2
+}
+
+```
+
+## Wildcard
+
+在需要子模式的地方，它作为占位符很有用，以便解构以后的位置值
+
+```dart
+var list = [1, 2, 3];
+var [_, two, _] = list;
+```
+
+当您想**要测试值的类型但不将该值绑定到名称时**，带有类型注释的通配符名称非常有用
+
+```dart
+switch (record) {
+  case (int _, String _):
+    print('First field is int and second is String.');
+}
+```
+
+# Functions
+
+Dart is a true object-oriented language, so **even functions are objects and have a type, [Function.](https://api.dart.cn/stable/dart-core/Function-class.html) **
+
+### Named parameters
+
+`{param1, param2, …}`
+
+命名参数是可选的，除非它们被明确标记为 `required` 
+
+```dart
+// address 类型为 String? 因为它可以为 null
+void foo({ required num age, String? address }) {}
+
+foo(age: 30);
+foo(age: 30, address: 'shanghai');
+```
+
+
+
+```dart
+// default value
+void enableFlags({bool bold = false, bool hidden = false}) {...}
+// bold will be true; hidden will be false.
+enableFlags(bold: true);
+
+// 标记为 required 的参数仍然可以为空：
+const Scrollbar({super.key, required Widget? child});
+
+```
+
+You *might want to place positional arguments first*, but Dart doesn't require it. Dart **allows named arguments to be placed anywhere** in the argument list *when it suits your API*
+
+```dart
+void foo(String name, {required num age}) {}
+
+// both OK
+foo('jack', age: 25);
+foo(age: 25, 'jack');
+```
+
+### Positiontal Parameters
+
+
+
+### Optional positional parameters
+
+将一组函数参数包装在 `[]` 中将它们标记为可选位置参数。如果您不提供默认值，则它们的类型必须可为空，因为它们的默认值将为 `null` 
+
+```dart
+String say(String from, String msg, [String? device]) {
+  var result = '$from says $msg';
+  if (device != null) {
+    result = '$result with a $device';
+  }
+  return result;
+}
+
+assert(say('Bob', 'Howdy') == 'Bob says Howdy');
+
+assert(say('Bob', 'Howdy', 'smoke signal') ==
+    'Bob says Howdy with a smoke signal');
+
+
+// With default value
+String say(String from, String msg, [String device = 'carrier pigeon']) {
+  var result = '$from says $msg with a $device';
+  return result;
+}
+
+assert(say('Bob', 'Howdy') == 'Bob says Howdy with a carrier pigeon');
+```
+
+
+
+
+
+Dart 语法要求**位置参数必须在命名参数之前**。这是因为位置参数的调用是基于参数的位置的，如果允许在命名参数之后出现位置参数，编译器将难以正确解析和匹配参数
+
+```dart
+// 错误的样例
+void foo({required num age}, String name) {}
+// 调用时 编译器可能会混淆，因为它无法轻易区分哪个值对应哪个参数。这就是为什么位置参数必须先于命名参数
+foo(age: 30, "John");
+```
+
+A function can have any number of *required positional* parameters. These can be followed either by *named* parameters or by *optional positional* parameters (but not both).
+
+函数可以具有任意数量的必选位置参数。这些参数后面可以跟有命名参数或可选的位置参数（但不能同时跟有两者）。
+
+即：**可选位置参数**（optional positional parameters）和 **命名参数**（named parameters）不能同时出现在同一个函数的参数列表中
+
+```dart
+// ERROR
+void foo(String name, [String? company = 'hh'], { required num age, String? address }) {}
+
+// OK
+void foo(String name, [String? company = 'hh']) {}
+void foo(String name, { required num age }) {}
+```
+
+
+
+
+
+
+
+## The main() function
+
+每个应用程序都必须有一个顶级 `main()` 函数，作为应用程序的入口点。 `main()` 函数返回 `void` 并**具有可选的 `List<String>` 参数作为参数。**
+
+```dart
+// Run the app like this: dart run args.dart 1 test
+void main(List<String> arguments) {
+  print(arguments);
+
+  assert(arguments.length == 2);
+  assert(int.parse(arguments[0]) == 1);
+  assert(arguments[1] == 'test');
+}
+```
+
+
+
+## Functions as first-class objects
+
+> “一等公民” (First-Class Citizens) 是编程语言理论中的一个术语，最早可以追溯到计算机科学家 Christopher Strachey 在 1960 年代的研究工作。他提出了“first-class object”或“first-class citizen”的概念，用来描述编程语言中对某种实体（如函数、对象、数字等）所赋予的权利或能力。
+
+在编程语言中，如果某种实体是“一等公民”，它就具备以下权利：
+
+1. **赋值**：可以赋值给变量或存储在数据结构中。
+2. **传递**：可以作为参数传递给其他函数或方法。
+3. **返回**：可以作为函数或方法的返回值。
+4. **动态创建**：可以在程序运行时动态创建。
+
+在编程语言中，某种实体如果是“一等公民”，它在语言中享有最大的自由和灵活性，可以像其他基本数据类型（如整数或字符串）一样被操作。这个比喻形象地表达了在编程语言中对某种实体的高度自由和灵活性，而这种自由使得编程语言更加灵活和强大。
+
+
+
+## Generators 
+
+当您需要延迟生成值序列时，请考虑使用生成器函数。 Dart 内置支持两种生成器函数：
+
+- **Synchronous** generator: Returns an [`Iterable`](https://api.dart.cn/stable/dart-core/Iterable-class.html) object.  
+  - 同步生成器：返回一个`Iterable`对象。
+- **Asynchronous** generator: Returns a [`Stream`](https://api.dart.cn/stable/dart-async/Stream-class.html) object.
+  - 异步生成器：返回一个`Stream`对象。
+
+要实现同步生成器函数，请将函数体标记为 `sync*` ，并使用 `yield` 语句传递值：
+
+```dart
+Iterable<int> naturalsTo(int n) sync* {
+  int k = 0;
+  while (k < n) yield k++;
+}
+```
+
+要实现异步生成器函数，请将函数体标记为 `async*` ，并使用 `yield` 语句传递值：
+
+```dart
+Stream<int> asynchronousNaturalsTo(int n) async* {
+  int k = 0;
+  while (k < n) yield k++;
+}
+```
+
+如果您的生成器是递归的，您可以使用 `yield*` 提高其性能：
+
+```dart
+Iterable<int> naturalsDownFrom(int n) sync* {
+  if (n > 0) {
+    yield n;
+    yield* naturalsDownFrom(n - 1);
+  }
+}
+
+// 如何获取值 
+
+// 1. main 为 async，使用 toList
+void main(List<String> args) async {
+	List<int> res = await naturalsDownFrom(10).toList();
+	print(res);
+}
+
+// 2
+void main(List<String> args) async {
+  Stream<int> res = naturalsDownFrom(10);
+  await res.listen((v) {
+    print(v);
+  });
+}
+
+// 3
+void main(List<String> args) async {
+  Stream<int> res = naturalsDownFrom(10);
+  await res.forEach((v) {
+    print(v);
+  });
+}
+
+// 4
+void main(List<String> args) async {
+  Stream<int> res = naturalsDownFrom(10);
+  await for (int v in res) {
+    print(v);
+  }
+}
+```
+
+
+
+
+
+## External functions
+
+外部函数是指其**函数体与其声明分开实现的函数**。在函数声明之前包含 `external` 关键字，如下所示：
+
+```dart
+external void someFunc(int i);
+```
+
+外部函数的**实现可以来自另一个 Dart 库，或者更常见的是来自另一种语言**。在互操作上下文中，`external` 引入外部函数或值的类型信息，使它们可以在 Dart 中使用。实现和使用在很大程度上是特定于平台的，因此请查看 C 或 JavaScript 等互操作文档以了解更多信息。
+
+外部函数可以是顶级函数、实例方法、getter 或 setter 或非重定向构造函数。实例变量也可以是 `external` ，这相当于外部 getter 和（如果变量不是 `final` ）外部 setter。
+
+
+
+
+
+
+
+# Loops
+
+Dart 的 `for` 循环内部的闭包捕获索引的值。这避免了 JavaScript 中常见的陷阱。
+
+```dart
+var callbacks = [];
+for (var i = 0; i < 2; i++) {
+  callbacks.add(() => print(i));
+}
+
+// output: 0 1
+for (final c in callbacks) {
+  c();
+}
+```
+
+有时，在迭代 `Iterable` 类型（例如 `List` 或 `Set` ）时，您可能*不需要知道当前迭代计数器*。在这种情况下，请使用 `for-in` 循环来获得更简洁的代码：
+
+```dart
+for (final candidate in candidates) {
+  candidate.interview();
+}
+```
+
+要处理从 iterable 获取的值，您还可以在 `for-in` 循环中使用模式：
+
+```dart
+for (final Candidate(:name, :yearsExperience) in candidates) {
+  print('$name has $yearsExperience of experience.');
+}
+```
