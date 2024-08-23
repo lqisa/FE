@@ -1318,7 +1318,7 @@ Map<String, dynamic> map = {
 };
 
 switch (map) {
-    // FAIL
+  // FAIL
   case {
     'name': String,
     'age': num,
@@ -1348,6 +1348,36 @@ if (map
 }
 
 ```
+
+注意：此处不能用
+
+```dart
+case {
+    'name': String,
+    'age': num,
+  }:
+```
+
+匹配，因此这里的 `String` 和 `num`， 表示该属性的值为 `String` 和 `num` 类本身，测试如下：
+
+```dart
+void main() {
+  Map<String, Object> map = {
+    'name': String,
+    'age': num,
+  };
+
+  // OK
+  if (map case {'name': String, 'age': num}) {
+    print('Name: $map["name"]');
+    print('Age: $map["age"]');
+  }
+}
+
+
+```
+
+
 
 
 
@@ -1666,6 +1696,8 @@ external void someFunc(int i);
 
 # Loops
 
+## For loops
+
 Dart 的 `for` 循环内部的闭包捕获索引的值。这避免了 JavaScript 中常见的陷阱。
 
 ```dart
@@ -1695,3 +1727,175 @@ for (final Candidate(:name, :yearsExperience) in candidates) {
   print('$name has $yearsExperience of experience.');
 }
 ```
+
+## While and do-while
+
+## Break and continue
+
+
+
+
+
+# Branches
+
+- `if` statements and elements
+- `if-case` statements and elements
+- `switch` statements and expressions
+
+## If-case
+
+Dart `if` statements support `case` clauses followed by a [pattern](https://dart.cn/language/patterns)
+
+```dart
+if (pair case [int x, int y]) return Point(x, y);
+```
+
+## Switch statements 
+
+```dart
+switch (command) {
+  case 'OPEN':
+    executeOpen();
+    continue newCase; // Continues executing at the newCase label.
+
+  case 'DENIED': // Empty case falls through.
+  case 'CLOSED':
+    executeClosed(); // Runs for both DENIED and CLOSED,
+
+  newCase:
+  case 'PENDING':
+    executeNowClosed(); // Runs for both OPEN and PENDING.
+}
+```
+
+### Switch expressions
+
+A `switch` *expression* **produces a value** based on the expression body of whichever case matches. You can **use a switch expression wherever Dart allows expressions**, *except* at the start of an expression statement.
+
+```dart
+var x = switch (y) { ... };
+
+print(switch (x) { ... });
+
+return switch (x) { ... };
+```
+
+```dart
+token = switch (charCode) {
+  slash || star || plus || minus => operator(charCode),
+  comma || semicolon => punctuation(charCode),
+  >= digit0 && <= digit9 => number(),
+  // DEFAULT
+  _ => throw FormatException('Invalid')
+};
+```
+
+The syntax of a `switch` expression differs from `switch` statement syntax:
+
+- Cases *do not* start with the `case` keyword.
+- A case body is a single expression instead of a series of statements.
+- Each case must have a body; **there is no implicit fallthrough for empty cases**.
+- Case patterns are separated from their bodies using `=>` instead of `:`.
+- Cases are separated by `,` (and an optional trailing `,` is allowed).
+- Default cases can *only* use `_`, instead of allowing both `default` and `_`.
+
+> Switch expressions require a [language version](https://dart.cn/guides/language/evolution#language-versioning) of at least 3.0.
+
+## Guard clause
+
+要在 `case` 子句后设置可选的保护子句，请使用关键字 `when` 。保护子句可以跟在 `if case` 以及 `switch` 语句和表达式之后。
+
+When the guard clause **evaluates to false**, execution **proceeds to the next case rather than exiting the entire switch**.
+
+```dart
+// Switch statement:
+switch (something) {
+  case somePattern when some || boolean || expression:
+    //             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Guard clause.
+    body;
+}
+
+// Switch expression:
+var value = switch (something) {
+  somePattern when some || boolean || expression => body,
+  //               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Guard clause.
+}
+
+// If-case statement:
+if (something case somePattern when some || boolean || expression) {
+  //                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ Guard clause.
+  body;
+}
+```
+
+### 
+
+
+
+# Error handling
+
+## Catch
+
+```dart
+try {
+  breedMoreLlamas();
+} on OutOfLlamasException {
+  buyMoreLlamas();
+  // 需要异常对象时使用 catch
+} on Exception catch (e) {
+  // Anything else that is an exception
+  print('Unknown exception: $e');
+} catch (e) {
+  // No specified type, handles all
+  print('Something really unknown: $e');
+}
+
+// 您可以为 catch() 指定一个或两个参数。第一个参数是抛出的异常，第二个参数是堆栈跟踪（StackTrace 对象）
+try {
+  // ···
+} on Exception catch (e) {
+  print('Exception details:\n $e');
+} catch (e, s) {
+  print('Exception details:\n $e');
+  print('Stack trace:\n $s');
+}
+```
+
+要部分处理异常，同时允许其传播，请使用 `rethrow` 关键字。
+
+```dart
+void misbehave() {
+  try {
+    dynamic foo = true;
+    print(foo++); // Runtime error
+  } catch (e) {
+    print('misbehave() partially handled ${e.runtimeType}.');
+    rethrow; // Allow callers to see the exception.
+  }
+}
+```
+
+## Assert
+
+`assert` 的第一个参数可以是解析为布尔值的任何表达式。如果表达式的值为 true，则断言成功并继续执行。如果为 false，则断言失败并引发异常（`AssertionError`）。
+
+要将消息附加到断言，请将字符串添加为 `assert` 的第二个参数（可以选择使用尾随逗号）：
+
+```dart
+assert(urlString.startsWith('https'),
+    'URL ($urlString) should start with "https".');
+```
+
+断言到底什么时候起作用？这取决于您使用的工具和框架：
+
+- Flutter enables assertions in [debug mode. ](https://docs.flutter.cn/testing/debugging#debug-mode-assertions) 
+  - Flutter 在调试模式下启用断言。
+- Development-only tools such as [`webdev serve`](https://dart.cn/tools/webdev#serve) typically enable assertions by default.
+  - `webdev serve` 等仅供开发的工具通常默认启用断言。
+- Some tools, such as [`dart run`](https://dart.cn/tools/dart-run) and [`dart compile js`](https://dart.cn/tools/dart-compile#js) support assertions through a command-line flag: `--enable-asserts`.
+  - 某些工具，例如 `dart run` 和 `dart compile js` 支持通过命令行标志进行断言： `--enable-asserts` 。
+
+In production code, assertions are ignored, and the arguments to `assert` aren't evaluated.
+
+
+
