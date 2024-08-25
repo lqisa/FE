@@ -119,7 +119,11 @@ String name   // Non-nullable type. Cannot be `null` but can be string.
 
 `const` 变量在**编译时**就被初始化且是编译时常量
 
-
+```dart
+final currentTime = DateTime.now();  // 运行时确定
+const pi = 3.14159;  // 编译时确定
+const list = [1, 2, 3];  // 编译时确定
+```
 
 > 虽然 `final` 对象不能被修改，但**它的字段可能可以被更改**。相比之下，`const` 对象及其字段不能被更改：它们是 **不可变的**。
 
@@ -1896,6 +1900,601 @@ assert(urlString.startsWith('https'),
   - 某些工具，例如 `dart run` 和 `dart compile js` 支持通过命令行标志进行断言： `--enable-asserts` 。
 
 In production code, assertions are ignored, and the arguments to `assert` aren't evaluated.
+
+
+
+# Classes
+
+## Using constructors
+
+If you need to assign the value of a `final` instance variable after the constructor body starts, you can use one of the following:
+
+如果需要在构造函数主体启动后为 `final` 实例变量赋值，可以使用以下方法之一：
+
+- Use a [factory constructor](https://dart.cn/language/constructors#factory-constructors).
+  - 使用工厂构造函数。
+- Use `late final`, but [*be careful:*](https://dart.cn/effective-dart/design#avoid-public-late-final-fields-without-initializers) a `late final` without an initializer adds a setter to the API.
+  - 使用 `late final` ，但要小心：不带初始化器的 `late final` 会向 API 添加 setter。
+
+```dart
+class ProfileMark {
+  final String name;
+  final num age;
+  final DateTime start = DateTime.now();
+
+  // using a constructor parameter
+  ProfileMark(this.name, this.age);
+  // using a constructor's initializer list
+  ProfileMark.unnamed()
+      : name = '',
+        age = 30;
+}
+```
+
+## Implicit interfaces
+
+ a class implements multiple interfaces:
+
+```dart
+class Point implements Comparable, Location {...}
+```
+
+## Class variables and methods
+
+### Static variables
+
+Static variables aren't initialized until they're used.
+
+```dart
+class Example {
+  static final String value = _computeValue();
+
+  static String _computeValue() {
+    print('Initializing static variable...');
+    return 'Hello, Dart!';
+  }
+}
+
+void main() {
+  print('Program started.');
+  // 未访问Example.value，_computeValue()不会被调用
+  print('Doing other work...');
+
+  // 第一次访问Example.value，开始初始化
+  print(Example.value);
+
+  // 再次访问，_computeValue()不会再被调用
+  print(Example.value);
+}
+
+// Output
+Program started.
+Doing other work...
+Initializing static variable...
+Hello, Dart!
+Hello, Dart!
+```
+
+### Static methods
+
+Static methods (class methods) have access to static variables
+
+
+
+# Class - Constructors
+
+Dart implements many types of constructors. Except for default constructors, these functions use the same name as their class.
+
+- [Generative constructors](https://dart.cn/language/constructors/#generative-constructors): Creates new instances and initializes instance variables.
+
+  ```dart
+  class Point {
+    // Initializer list of variables and values
+    double x = 2.0;
+    double y = 2.0;
+  
+    // Generative constructor with initializing formal parameters:
+    Point(this.x, this.y);
+  }
+  ```
+
+- [Default constructors](https://dart.cn/language/constructors/#default-constructors): Used to create a new instance **when a constructor hasn't been specified**. It doesn't take arguments and isn't named.
+
+  If you **don't declare a constructor**, Dart uses the default constructor. The default constructor is **a generative constructor without arguments or name**.
+
+  ```dart
+  class Point {
+    // Initializer list of variables and values
+    double x = 2.0;
+    double y = 2.0;
+    
+    // （可选）
+    // 没有显式声明构造函数，Dart会提供默认构造函数
+    // Point();
+  }
+  
+  Point p = Point();
+  ```
+
+  
+
+- [Named constructors](https://dart.cn/language/constructors/#named-constructors): Clarifies the purpose of a constructor or allows the creation of **multiple constructors** for the same class.
+
+  ```dart
+  const double xOrigin = 0;
+  const double yOrigin = 0;
+  
+  class Point {
+    final double x;
+    final double y;
+  
+    // Sets the x and y instance variables
+    // before the constructor body runs.
+    Point(this.x, this.y);
+  
+    // Named constructor
+    Point.origin()
+        : x = xOrigin,
+          y = yOrigin;
+  }
+  ```
+
+  注意这里的 
+
+  > Sets the x and y instance variables before the constructor body runs.
+
+  参数的实例化和赋值都是先于构造函数的执行的
+
+- [Constant constructors](https://dart.cn/language/constructors/#constant-constructors): Creates instances as compile-type constants.
+
+- [Factory constructors](https://dart.cn/language/constructors/#factory-constructors): Either **creates a new instance of a subtype** or **returns an existing instance from cache**.
+
+  **Factory constructors can't access `this`.**
+
+- [Redirecting constructor](https://dart.cn/language/constructors/#redirecting-constructors): Forwards calls to another constructor in the same class.
+
+  **A redirecting constructor has an empty body**.
+
+  ```dart
+  const double xOrigin = 0;
+  const double yOrigin = 0;
+  
+  class Point {
+    final double x;
+    final double y;
+  
+    // Sets the x and y instance variables
+    // before the constructor body runs.
+    Point(this.x, this.y) {
+      print('generative constructor called');
+    }
+  
+    // Named constructor
+    // 此处无法再 redirect ，因为有函数体，即使删除函数体，因为初始化列表需要用":"作为分隔符，与 redirect 语法冲突
+    Point.origin()
+        : x = xOrigin,
+          y = yOrigin {
+      print('origin constructor called');
+    }
+  
+    // Delegates to the main constructor.
+    Point.alongXAxis(double x) : this.origin();
+  }
+  ```
+
+  
+
+## Instance Variable Initialization
+
+### Use initializing formal parameters (初始化形参)
+
+```dart
+class PointB {
+  final double x;
+  final double y;
+
+  // Sets the x and y instance variables
+  // before the constructor body runs.
+  PointB(this.x, this.y);
+
+  // Initializing formal parameters can also be optional.
+  // 调用构造函数时，可以选择传入参数来初始化对象的实例变量，也可以不传参数，此时实例变量会被设置为默认值。
+  PointB.optional([this.x = 0.0, this.y = 0.0]);
+}
+
+// ...
+var b1 = PointB.optional();
+print('${b1.x}, ${b1.y}'); // 0.0 0.0
+var b2 = PointB.optional(10);
+print('${b2.x}, ${b2.y}'); // 10.0 0.0
+```
+
+```dart
+class PointC {
+  double x; // must be set in constructor
+  double y; // must be set in constructor
+
+  // Generative constructor with initializing formal parameters
+  // with default values
+  PointC.named({this.x = 1.0, this.y = 1.0});
+  
+  // 必输控制
+  PointC.namedRequired({required double x, double y}) : x = x;
+  
+  // OK
+  PointC.namedRequired({required double x, double? y})
+      : x = x,     // 10.0
+        y = x + 1; // 11.0
+  
+  // ERROR
+  PointC.namedRequired({required double x, double? y})
+      : x = x,
+        // 初始化列表在构造函数执行前，无法访问 this
+        y = this.x + 1;
+
+  @override
+  String toString() {
+    return 'PointC.named($x,$y)';
+  }
+}
+```
+
+To validate inputs during development, use `assert` in the initializer list.
+
+```dart
+Point.withAssert(this.x, this.y) : assert(x >= 0) {
+  print('In Point.withAssert(): ($x, $y)');
+}
+```
+
+
+
+## Constructor inheritance
+
+*Subclasses*, or child classes, **don't inherit *constructors* from their *superclass*, or immediate parent class**. If a class **doesn't declare a constructor, it can only use the [default constructor](https://dart.cn/language/constructors/#default-constructors).**
+
+子类（也称为子类或派生类）不会自动继承其父类（超类）的构造函数。这意味着如果一个子类没有显式定义构造函数，它将无法直接使用父类的构造函数，**除非父类提供了默认的无参构造函数**。
+
+**构造函数不继承**：
+
+- 当你创建一个子类时，**它不会继承父类的构造函数**。这与某些其他编程语言（如 Java）不同，在某些条件下，构造函数可以被继承。
+
+**默认构造函数**：
+
+- **如果子类没有声明任何构造函数，Dart 会为子类自动提供一个默认的无参构造函数。这个默认构造函数会调用父类的默认无参构造函数**。
+
+  ```dart
+  class Parent {
+    Parent() {
+      print('Parent constructor');
+    }
+  }
+  
+  class Child extends Parent {}
+  
+  // output 'Parent constructor'
+  Child()
+  ```
+
+- 如果**父类没有无参构造函数**（例如，只有带参数的构造函数），你**必须在子类中显式定义一个构造函数，并通过 `super` 关键字调用合适的父类构造函数**。
+
+  ```dart
+  class Parent {
+    final String name;
+    Parent(this.name) {
+      print('Parent constructor');
+    }
+  }
+  
+  // ERROR
+  // The superclass 'Parent' doesn't have a zero argument constructor.
+  // Try declaring a zero argument constructor in 'Parent', or declaring a constructor in Child that 
+  // explicitly invokes a constructor in 'Parent'
+  class Child extends Parent {}
+  			^^^^
+          
+  // OK
+  class Child2 extends Parent {
+  	final int age;
+    // 这也意味着先执行 super 构造函数，再执行 child 构造函数
+    Child(String name, this.age) : super(name);     
+  }
+  
+  // output 
+  // 'Parent constructor'
+  // 'Child constructor'
+  Child2();
+  ```
+
+
+
+### Non-default superclass constructors
+
+Dart executes constructors in the following order:
+
+1. [initializer list](https://dart.cn/language/constructors/#use-an-initializer-list)
+2. superclass's unnamed, no-arg constructor
+3. main class's no-arg constructor
+
+
+
+
+
+### Super parameters
+
+为避免传参给super构造函数，使用 super parameter 来转发参数
+
+- **You can't use this feature with [redirecting constructors](https://dart.cn/language/constructors/#redirecting-constructors).**
+- 语法与初始化形参([initializing formal parameters](https://dart.cn/language/constructors/#use-initializing-formal-parameters))类似
+
+```dart
+class Vector2d {
+  final double x;
+  final double y;
+
+  Vector2d(this.x, this.y);
+}
+
+class Vector3d extends Vector2d {
+  final double z;
+
+  // Forward the x and y parameters to the default super constructor like:
+  // Vector3d(final double x, final double y, this.z) : super(x, y);
+  Vector3d(super.x, super.y, this.z);
+}
+```
+
+```dart
+class Vector2d {
+  // ...
+  Vector2d.named({required this.x, required this.y});
+}
+
+class Vector3d extends Vector2d {
+  final double z;
+
+  // Forward the y parameter to the named super constructor like:
+  // Vector3d.yzPlane({required double y, required this.z})
+  //       : super.named(x: 0, y: y);
+  Vector3d.yzPlane({required super.y, required this.z}) : super.named(x: 0);
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+# Class - Methods
+
+## Operators
+
+```dart
+class Vector {
+  final int x, y;
+
+  Vector(this.x, this.y);
+
+  Vector operator +(Vector v) => Vector(x + v.x, y + v.y);
+  Vector operator -(Vector v) => Vector(x - v.x, y - v.y);
+
+  @override
+  bool operator ==(Object other) =>
+      other is Vector && x == other.x && y == other.y;
+
+  @override
+  int get hashCode => Object.hash(x, y);
+}
+
+void main() {
+  final v = Vector(2, 3);
+  final w = Vector(2, 2);
+
+  assert(v + w == Vector(4, 5));
+  assert(v - w == Vector(0, 1));
+}
+```
+
+# Extend a class
+
+An overriding method declaration must match the method (or methods) that it overrides in several ways:
+
+- The **return type** must be **the same type as (or a subtype of)** the overridden method's return type.
+
+  - 注：协变
+
+  - ```dart
+    class Base {}
+    
+    class Animal extends Base {
+      Base chase() {
+        return Base();
+      }
+    }
+    
+    class Mouse extends Animal {}
+    
+    class Cat extends Animal {
+      // same type OK
+      @override
+      Base chase() {
+        return Base();
+      }
+      
+      /**
+      ** subtype OK
+      **/
+      @override
+      Animal chase() {
+        return Animal();
+      }
+      @override
+      Cat chase() {
+        return Cat();
+      }
+      @override
+      Mouse chase() {
+        return Mouse();
+      }
+    }
+    ```
+
+- **Parameter types** must be **the same type as (or a supertype of)** the overridden method's parameter types. 
+
+  - 注：逆变
+
+  - ```dart
+    class Base {}
+    class Animal extends Base {
+      void chase(Animal x) {}
+    }
+    
+    class Mouse extends Animal {}
+    
+    class Cat extends Animal {
+      // same type OK
+      @override
+      void chase(Animal x) {}
+    
+      // SuperType OK
+      @override
+      void chase(Base x) {}
+    
+      // `covariant' keyword OK
+      @override
+      void chase(covariant Mouse x) {}
+    }
+    ```
+
+- If the overridden method accepts *n* positional parameters, then the overriding method must also accept *n* positional parameters.
+
+  - 位置参数数量需要一致
+
+- **A [generic method](https://dart.cn/language/generics#using-generic-methods) can't override a non-generic one, and a non-generic method can't override a generic one**.
+
+  - 泛型与否不能相互覆盖
+
+
+
+
+
+
+
+# Mixins
+
+Mixin 是一种定义可在多个类层次结构中重用的代码的方法。它们旨在集体提供成员实现。
+
+要使用 mixin，请使用 `with` 关键字，后跟一个或多个 mixin 名称。
+
+```dart
+class Musician extends Performer with Musical {
+  // ···
+}
+
+class Maestro extends Person with Musical, Aggressive, Demented {
+  Maestro(String maestroName) {
+    name = maestroName;
+    canConduct = true;
+  }
+}
+```
+
+要定义 mixin，请使用 `mixin` 声明。在极少数情况下，您需要同时定义 mixin 和类，您可以使用 `mixin class` 声明。
+
+Mixins 和 mixin 类不能有 `extends` 子句，并且不能声明任何生成构造函数。
+
+
+
+### Define abstract members in the mixin
+
+在 mixin 中声明抽象方法会**强制任何使用 mixin 的类型定义其行为所依赖的抽象方法**
+
+```dart
+mixin Musician {
+  void playInstrument(String instrumentName); // Abstract method.
+
+ // 其他非抽象方法
+}
+
+class Virtuoso with Musician { 
+  void playInstrument(String instrumentName) { // Subclass must define.
+    print('Plays the $instrumentName beautifully');
+  }  
+}
+```
+
+
+
+### Implement an interface
+
+与声明 mixin 抽象类似，在**不实际实现接口的情况下在 mixin 上放置 `implements` 子句**也将确保为 mixin 定义任何成员依赖项。
+
+```dart
+abstract interface class Tuner {
+  void tuneInstrument();
+}
+
+// 不实现 tuneInstrument 方法
+mixin Guitarist implements Tuner {
+  void playSong() {
+    tuneInstrument();
+
+    print('Strums guitar majestically.');
+  }
+}
+
+class PunkRocker with Guitarist {
+  // 需要实现 tuneInstrument
+  void tuneInstrument() {
+    print("Don't bother, being out of tune is punk rock.");
+  }
+}
+```
+
+### Use the `on` clause to declare a superclass
+
+`on` 子句的存在是为了定义解析 `super` 调用所针对的类型。因此，**只有当您需要在 mixin 中进行 `super` 调用时，才应该使用它**。
+
+`on` 子句强制任何使用 mixin 的类也成为 `on` 子句中类型的子类
+
+```dart
+class Musician {
+  musicianMethod() {
+    print('Playing music!');
+  }
+}
+
+mixin MusicalPerformer on Musician {
+  performerMethod() {
+    print('Performing music!');
+    super.musicianMethod();
+  }
+}
+
+class SingerDancer extends Musician with MusicalPerformer { }
+
+main() {
+  SingerDancer().performerMethod();
+}
+```
+
+## `class`, `mixin`, or `mixin class`?
+
+A `mixin class` declaration defines a class that is usable as **both a regular class and a mixin**, with the same name and the same type.
+
+- Mixins 不能有 `extends` or `with` 子句，因此 `mixin class` 也不行
+- 类不能有`on`子句，因此 `mixin class` 也不行
+
+
+
+
+
+
 
 
 
