@@ -92,23 +92,30 @@
       .px,
       .py {
         position: absolute;
-        background-color: red;
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        font-size: 5px;
-        text-align: center;
-        line-height: 10px;
+        background-color: #ff00005e;
+
+        /* border-radius: 50%; */
+        /* font-size: 5px; */
       }
       .px {
-        left: 25%;
+        left: 50%;
         top: 25%;
+        width: 200px;
+        height: 6px;
+        text-align: center;
+        line-height: 6px;
         transform: translate(-50%, -50%);
       }
       .py {
-        left: 37.5%;
-        top: 25%;
+        top: 50%;
+        left: 25%;
+        width: 6px;
+        height: 200px;
         transform: translate(-50%, -50%);
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
     </style>
   </head>
@@ -130,8 +137,8 @@
         <div class="col"></div>
         <div class="col"></div>
         <div class="col"></div>
-        <div class="px">x</div>
-        <div class="py">y</div>
+        <div class="px">top 25%</div>
+        <div class="py">left 25%</div>
       </div>
       <h2>
         <p>DIV: 200px * 200px = (25px * 8) * (25px * 8)</p>
